@@ -8,18 +8,19 @@ output:
 
 # Synopsis
 
-This report describes the damage done by storm events to human health and economic activity.
-
+The goal of this project is to determine which Storm Event Types are most damaging in terms of human casualty and economic loss. Tornadoes have been, and remain the largest threat to human life from storm activity in the United States. However, in recent years, tornadoes have become comparatively less threatening. Extreme heat, flash flooding and lightning are now signficant contributers. Property damage is mostly caused by water in one form or another along with wind. Crop damage also tends to be caused by water but the most dominant cause is lack of water, i.e. drought.
 
 # Loading and Processing the Data
 
 From the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database
 contains data for major storms, specific events resulting, and the human and economic costs of those
-events. We are working from a copy cached for use with the Coursera Reproducible Research class.
+events. Here, I am working from a copy cached for use with the Coursera Reproducible Research class.
 
 ```{r workingDir,echo=FALSE}
 # Working from GitHub directory
-setwd("D:/GitHub/datasciencecoursera/RepData_PeerAssessment2/")
+#setwd("D:/GitHub/datasciencecoursera/RepData_PeerAssessment2/")
+setwd("/Users/ehagan/github/RepData_PeerAssessment2/")
+options(width=800)
 ```
 
 Download the NOAA storm database.
@@ -29,7 +30,7 @@ fileName = "StormData.csv.bz2"
 
 if (! file.exists(fileName)) {
     # Download and check return code. 0 is success, non-zero is error. May also throw exception.
-    if (0 != download.file(url=dataUrl, destfile=fileName)) {
+    if (0 != download.file(url=dataUrl, destfile=fileName, method="curl")) {
         stop("Failed to download data file: " + dataUrl)
     }
 }
@@ -53,17 +54,88 @@ if(!exists("weatherData") || (nrow(weatherData) != 902297) || (ncol(weatherData)
 ```
 
 Compute summary statistics for fatalities and injuries by event type.
-```{r cache=TRUE}
+The values plotted will only be the top cumulative 80% of casualties.
+```{r casualtyData,cache=TRUE}
+targetQuantile = 0.9
+lastDecade = as.Date("2001/01/01")
+
 fatalitySum  <- aggregate(FATALITIES ~ EVTYPE, data=weatherData, sum)
-fatalityMean <- aggregate(FATALITIES ~ EVTYPE, data=weatherData, mean)
+fatalitySumRecent  <- aggregate(FATALITIES ~ EVTYPE, data=weatherData[which(as.Date(weatherData$BGN_DATE,"%m/%d/%Y %H:%M:%S") > lastDecade),], sum)
+
+fatalitySum  <- fatalitySum[order(-fatalitySum$FATALITIES),]
+fatalitySumRecent  <- fatalitySumRecent[order(-fatalitySumRecent$FATALITIES),]
+
+fatalitySum$EVTYPE  <- factor(fatalitySum$EVTYPE, levels=fatalitySum[order(fatalitySum$FATALITIES), "EVTYPE"])
+fatalitySumRecent$EVTYPE  <- factor(fatalitySumRecent$EVTYPE, levels=fatalitySumRecent[order(fatalitySumRecent$FATALITIES), "EVTYPE"])
+
+fatalitySum  <- within(fatalitySum, cSum <- cumsum(FATALITIES))
+fatalitySumRecent  <- within(fatalitySumRecent, cSum <- cumsum(FATALITIES))
+
+pctfS      <- fatalitySum[fatalitySum$cSum < targetQuantile * sum(fatalitySum$FATALITIES),]
+pctfSR     <- fatalitySumRecent[fatalitySumRecent$cSum < targetQuantile * sum(fatalitySumRecent$FATALITIES),]
+
 injurySum    <- aggregate(INJURIES ~ EVTYPE, data=weatherData, sum)
-injuryMean   <- aggregate(INJURIES ~ EVTYPE, data=weatherData, mean)
+injurySumRecent    <- aggregate(INJURIES ~ EVTYPE, data=weatherData[which(as.Date(weatherData$BGN_DATE,"%m/%d/%Y %H:%M:%S") > lastDecade),], sum)
+
+injurySum    <- injurySum[order(-injurySum$INJURIES),]
+injurySumRecent    <- injurySumRecent[order(-injurySumRecent$INJURIES),]
+
+injurySum$EVTYPE  <- factor(injurySum$EVTYPE, levels=injurySum[order(injurySum$INJURIES), "EVTYPE"])
+injurySumRecent$EVTYPE  <- factor(injurySumRecent$EVTYPE, levels=injurySumRecent[order(injurySumRecent$INJURIES), "EVTYPE"])
+
+injurySum    <- within(injurySum, cSum <- cumsum(INJURIES))
+injurySumRecent    <- within(injurySumRecent, cSum <- cumsum(INJURIES))
+
+pctiS      <- injurySum[injurySum$cSum < targetQuantile * sum(injurySum$INJURIES),]
+pctiSR      <- injurySumRecent[injurySumRecent$cSum < targetQuantile * sum(injurySumRecent$INJURIES),]
 ```
 
-Sort the summary data so that the most damaging events are first and create plots.
-```{r}
+Plot total fatalities and injuries by event type
+```{r plotHumanCasualties}
+library(ggplot2)
+library(gridExtra)
+fatalityPlot = ggplot(pctfS, aes(x=EVTYPE, y=FATALITIES)) + ggtitle("Human fatalities 1950-2011") + geom_bar(stat="identity") + coord_flip()
+fatalityRecentPlot = ggplot(pctfSR, aes(x=EVTYPE, y=FATALITIES)) + ggtitle("Human fatalities 2001-2011") + geom_bar(stat="identity") + coord_flip()
+
+injuryPlot   = ggplot(pctiS, aes(x=EVTYPE, y=INJURIES)) + ggtitle("Human injuries 1950-2011") + geom_bar(stat="identity") + coord_flip()
+injuryRecentPlot   = ggplot(pctiSR, aes(x=EVTYPE, y=INJURIES)) + ggtitle("Human injuries 2001-2011") + geom_bar(stat="identity") + coord_flip()
+grid.arrange(fatalityPlot, injuryPlot, fatalityRecentPlot, injuryRecentPlot, ncol=2, nrow=2, main=sprintf("Human casualties vs. Storm Event Type: Top %d pct.", targetQuantile * 100))
 ```
 
-http://www.r-bloggers.com/how-do-i-re-arrange-ordering-a-plot-revisited/
-http://rpubs.com/rdpeng/13396
-https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf
+Compute summary statistics for property and crop damage by event type.
+The values plotted will only be the top cumulative 90% of casualties.
+The database records damage as a value and an "exponent" which is a character
+code of dubious reliability. Leaving aside that the standard 32bit Int can resolve monetary
+values in excess of 1 Billion dollars, we'll have to tranlate from letters to numbers with 
+a mapping. We discard rows where the DMG value is not greater than zero.
+```{r economicData,cache=TRUE}
+expMapChars = c("h","H","k","K","m","M","b","B")
+expMapVals = c(100,100,1000,1000,1000000,1000000,1000000000,1000000000)
+expMap = cbind(expMapChars, expMapVals)
+
+# Property damage
+propDmg  <- weatherData[which(weatherData$PROPDMG > 0),]
+propDmg$PROPDMGEXP <- expMap[match(propDmg$PROPDMGEXP, expMap),2]
+propDmg$PROPDMG_COMP <- as.numeric(propDmg$PROPDMG) * as.numeric(propDmg$PROPDMGEXP)
+propSum  <- aggregate(PROPDMG_COMP ~ EVTYPE, data=propDmg, sum)
+propSum$EVTYPE  <- factor(propSum$EVTYPE, levels=propSum[order(propSum$PROPDMG_COMP), "EVTYPE"])
+propSum    <- propSum[order(-propSum$PROPDMG_COMP),]
+propSum    <- within(propSum, cSum <- cumsum(PROPDMG_COMP))
+pctpdS      <- propSum[propSum$cSum < targetQuantile * sum(propSum$PROPDMG_COMP),]
+
+cropDmg  <- weatherData[which(weatherData$CROPDMG > 0),]
+cropDmg$CROPDMGEXP <- expMap[match(cropDmg$CROPDMGEXP, expMap),2]
+cropDmg$CROPDMG_COMP <- as.numeric(cropDmg$CROPDMG) * as.numeric(cropDmg$CROPDMGEXP)
+cropSum  <- aggregate(CROPDMG_COMP ~ EVTYPE, data=cropDmg, sum)
+cropSum$EVTYPE  <- factor(cropSum$EVTYPE, levels=cropSum[order(cropSum$CROPDMG_COMP), "EVTYPE"])
+cropSum    <- cropSum[order(-cropSum$CROPDMG_COMP),]
+cropSum    <- within(cropSum, cSum <- cumsum(CROPDMG_COMP))
+pctcdS      <- cropSum[cropSum$cSum < targetQuantile * sum(cropSum$CROPDMG_COMP),]
+```
+
+Create plots of economic damages
+```{r economicPlots}
+propDmgPlot   = ggplot(pctpdS, aes(x=EVTYPE, y=PROPDMG_COMP)) + ggtitle("Property Damage 1950-2011") + geom_bar(stat="identity") + coord_flip()
+cropDmgPlot   = ggplot(pctcdS, aes(x=EVTYPE, y=CROPDMG_COMP)) + ggtitle("Crop Damage 1950-2011") + geom_bar(stat="identity") + coord_flip()
+grid.arrange(propDmgPlot, cropDmgPlot, nrow=2)
+```
