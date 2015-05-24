@@ -1,0 +1,46 @@
+---
+title: "Reproducible Research Project 2"
+author: "ehagan"
+date: "Saturday, May 23, 2015"
+output: 
+  html_document:
+    keep_md: true
+---
+
+I'll be working from my GitHub directory for this class
+```{r workingDir,echo=FALSE}
+setwd("D:/GitHub/datasciencecoursera/RepData_PeerAssessment2/")
+```
+
+Download the data if we don't have it already and read it into a data frame
+```{r loadData}
+dataUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+fileName = "StormData.csv.bz2"
+
+if (! file.exists(fileName)) {
+    # Download and check return code. 0 is success, non-zero is error. May also throw exception.
+    if (0 != download.file(url=dataUrl, destfile=fileName)) {
+        stop("Failed to download data file: " + dataUrl)
+    }
+}
+```
+
+Compute data checksum and compare to previous, known good value
+```{r}
+library(tools)
+checkSum <- md5sum(fileName)
+if (checkSum != "df4aa61fff89427db6b7f7b1113b5553") {
+    stop("Data md5sum does not match known value")
+}
+```
+
+Read csv can automatically handle compressed csv files.
+This takes a while so we'll check to see if we have the right data first.
+```{r}
+
+if(!exists("weatherData") | (nrow(weatherData) != 902297) | (ncol(weatherData) != 37))  {
+    weatherData <- as.data.frame(read.csv(fileName))
+}
+```
+
+
