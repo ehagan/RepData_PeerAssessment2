@@ -1,11 +1,21 @@
 ---
-title: "Reproducible Research Project 2"
+title: "Human Health and Economic costs of Storm Events Between 1950 and 2011"
 author: "ehagan"
-date: "Saturday, May 23, 2015"
 output: 
   html_document:
     keep_md: true
 ---
+
+# Synopsis
+
+This report describes the damage done by storm events to human health and economic activity.
+
+
+# Loading and Processing the Data
+
+From the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database
+contains data for major storms, specific events resulting, and the human and economic costs of those
+events. We are working from a copy cached for use with the Coursera Reproducible Research class.
 
 ```{r workingDir,echo=FALSE}
 # Working from GitHub directory
@@ -13,7 +23,7 @@ setwd("D:/GitHub/datasciencecoursera/RepData_PeerAssessment2/")
 ```
 
 Download the NOAA storm database.
-```{r loadData}
+```{r downloadData}
 dataUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 fileName = "StormData.csv.bz2"
 
@@ -26,7 +36,7 @@ if (! file.exists(fileName)) {
 ```
 
 Compute database checksum and verify it matches the known checksum.
-```{r}
+```{r checkSum}
 library(tools)
 checkSum <- md5sum(fileName)
 if (checkSum != "df4aa61fff89427db6b7f7b1113b5553") {
@@ -35,9 +45,9 @@ if (checkSum != "df4aa61fff89427db6b7f7b1113b5553") {
 ```
 
 Load database if it is not already cached.
-```{r}
+```{r readDataFile,cache=TRUE}
 # Read csv can automatically handle compressed csv files.
-if(!exists("weatherData") | (nrow(weatherData) != 902297) | (ncol(weatherData) != 37))  {
+if(!exists("weatherData") || (nrow(weatherData) != 902297) || (ncol(weatherData) != 37))  {
     weatherData <- as.data.frame(read.csv(fileName))
 }
 ```
@@ -53,3 +63,7 @@ injuryMean   <- aggregate(INJURIES ~ EVTYPE, data=weatherData, mean)
 Sort the summary data so that the most damaging events are first and create plots.
 ```{r}
 ```
+
+http://www.r-bloggers.com/how-do-i-re-arrange-ordering-a-plot-revisited/
+http://rpubs.com/rdpeng/13396
+https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf
