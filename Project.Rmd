@@ -7,12 +7,12 @@ output:
     keep_md: true
 ---
 
-I'll be working from my GitHub directory for this class
 ```{r workingDir,echo=FALSE}
+# Working from GitHub directory
 setwd("D:/GitHub/datasciencecoursera/RepData_PeerAssessment2/")
 ```
 
-Download the data if we don't have it already and read it into a data frame
+Download the NOAA storm database.
 ```{r loadData}
 dataUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 fileName = "StormData.csv.bz2"
@@ -25,7 +25,7 @@ if (! file.exists(fileName)) {
 }
 ```
 
-Compute data checksum and compare to previous, known good value
+Compute database checksum and verify it matches the known checksum.
 ```{r}
 library(tools)
 checkSum <- md5sum(fileName)
@@ -34,13 +34,22 @@ if (checkSum != "df4aa61fff89427db6b7f7b1113b5553") {
 }
 ```
 
-Read csv can automatically handle compressed csv files.
-This takes a while so we'll check to see if we have the right data first.
+Load database if it is not already cached.
 ```{r}
-
+# Read csv can automatically handle compressed csv files.
 if(!exists("weatherData") | (nrow(weatherData) != 902297) | (ncol(weatherData) != 37))  {
     weatherData <- as.data.frame(read.csv(fileName))
 }
 ```
 
+Compute summary statistics for fatalities and injuries by event type.
+```{r cache=TRUE}
+fatalitySum  <- aggregate(FATALITIES ~ EVTYPE, data=weatherData, sum)
+fatalityMean <- aggregate(FATALITIES ~ EVTYPE, data=weatherData, mean)
+injurySum    <- aggregate(INJURIES ~ EVTYPE, data=weatherData, sum)
+injuryMean   <- aggregate(INJURIES ~ EVTYPE, data=weatherData, mean)
+```
 
+Sort the summary data so that the most damaging events are first and create plots.
+```{r}
+```
