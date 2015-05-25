@@ -1,5 +1,5 @@
 ---
-title: "Human Health and Economic costs of Storm Events Between 1950 and 2011"
+title: "Human Health and Economic Costs of Storm Events Between 1950 and 2011"
 author: "ehagan"
 output: 
   html_document:
@@ -10,7 +10,7 @@ output:
 
 The goal of this project is to determine which Storm Event Types are most damaging in terms of human casualty and economic loss. Tornadoes have been, and remain the largest threat to human life from storm activity in the United States. However, in recent years, tornadoes have become comparatively less threatening. Extreme heat, flash flooding and lightning are now signficant contributers. Property damage is mostly caused by water in one form or another along with wind. Crop damage also tends to be caused by water but the most dominant cause is lack of water, i.e. drought.
 
-# Loading and Processing the Data
+# Data Processing
 
 From the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database
 contains data for major storms, specific events resulting, and the human and economic costs of those
@@ -90,18 +90,6 @@ pctiS      <- injurySum[injurySum$cSum < targetQuantile * sum(injurySum$INJURIES
 pctiSR      <- injurySumRecent[injurySumRecent$cSum < targetQuantile * sum(injurySumRecent$INJURIES),]
 ```
 
-Plot total fatalities and injuries by event type
-```{r plotHumanCasualties}
-library(ggplot2)
-library(gridExtra)
-fatalityPlot = ggplot(pctfS, aes(x=EVTYPE, y=FATALITIES)) + ggtitle("Human fatalities 1950-2011") + geom_bar(stat="identity") + coord_flip()
-fatalityRecentPlot = ggplot(pctfSR, aes(x=EVTYPE, y=FATALITIES)) + ggtitle("Human fatalities 2001-2011") + geom_bar(stat="identity") + coord_flip()
-
-injuryPlot   = ggplot(pctiS, aes(x=EVTYPE, y=INJURIES)) + ggtitle("Human injuries 1950-2011") + geom_bar(stat="identity") + coord_flip()
-injuryRecentPlot   = ggplot(pctiSR, aes(x=EVTYPE, y=INJURIES)) + ggtitle("Human injuries 2001-2011") + geom_bar(stat="identity") + coord_flip()
-grid.arrange(fatalityPlot, injuryPlot, fatalityRecentPlot, injuryRecentPlot, ncol=2, nrow=2, main=sprintf("Human casualties vs. Storm Event Type: Top %d pct.", targetQuantile * 100))
-```
-
 Compute summary statistics for property and crop damage by event type.
 The values plotted will only be the top cumulative 90% of casualties.
 The database records damage as a value and an "exponent" which is a character
@@ -133,8 +121,25 @@ cropSum    <- within(cropSum, cSum <- cumsum(CROPDMG_COMP))
 pctcdS      <- cropSum[cropSum$cSum < targetQuantile * sum(cropSum$CROPDMG_COMP),]
 ```
 
-Create plots of economic damages
-```{r economicPlots}
+
+# Results
+
+Plot total fatalities and injuries by event type. The plots show that tornadoes are consistently the
+largest threat to human life and health from single storm event. 
+```{r plotHumanCasualties, fig.width=10, fig.height=8}
+library(ggplot2)
+library(gridExtra)
+fatalityPlot = ggplot(pctfS, aes(x=EVTYPE, y=FATALITIES)) + ggtitle("Human fatalities 1950-2011") + geom_bar(stat="identity") + coord_flip()
+fatalityRecentPlot = ggplot(pctfSR, aes(x=EVTYPE, y=FATALITIES)) + ggtitle("Human fatalities 2001-2011") + geom_bar(stat="identity") + coord_flip()
+
+injuryPlot   = ggplot(pctiS, aes(x=EVTYPE, y=INJURIES)) + ggtitle("Human injuries 1950-2011") + geom_bar(stat="identity") + coord_flip()
+injuryRecentPlot   = ggplot(pctiSR, aes(x=EVTYPE, y=INJURIES)) + ggtitle("Human injuries 2001-2011") + geom_bar(stat="identity") + coord_flip()
+grid.arrange(fatalityPlot, injuryPlot, fatalityRecentPlot, injuryRecentPlot, ncol=2, nrow=2, main=sprintf("Human casualties vs. Storm Event Type: Top %d pct.", targetQuantile * 100))
+```
+
+Create plots of economic damages. These plots show that flooding and large, powerful storm systems like
+Hurricanes and Tornadoes do the most property damage. They also show that drought does the most damage to crops.
+```{r economicPlots, fig.width=10, fig.height=6}
 propDmgPlot   = ggplot(pctpdS, aes(x=EVTYPE, y=PROPDMG_COMP)) + ggtitle("Property Damage 1950-2011") + geom_bar(stat="identity") + coord_flip()
 cropDmgPlot   = ggplot(pctcdS, aes(x=EVTYPE, y=CROPDMG_COMP)) + ggtitle("Crop Damage 1950-2011") + geom_bar(stat="identity") + coord_flip()
 grid.arrange(propDmgPlot, cropDmgPlot, nrow=2)
